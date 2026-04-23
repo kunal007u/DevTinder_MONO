@@ -62,7 +62,10 @@ app.delete("/user/deleteUser/v1", async (req, res) => {
 // UDPATE/ User by ID
 app.patch("/user/UpdateUser/v1", async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate({ "_id": req.query.userID }, req.body)
+    const user = await User.findByIdAndUpdate({ "_id": req.query.userID }, req.body,{
+      runValidators: true,
+      new: true, //Return new updated user not the old one
+    })
     if (!user) res.status(404).json({ message: "No User Found To Update" })
     res.status(200).json({ message: "User updated Successfully", user: user })
   }
