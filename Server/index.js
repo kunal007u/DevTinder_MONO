@@ -15,9 +15,9 @@ app.use(express.json());// Middleware to parse JSON request body
 app.get("/user/getUserByEmail/v1", async (req, res) => {
 
   try {
-    const getUsers = await User.find({ email: req.query.email })
-    if (getUsers.length === 0) res.status(404).json({ message: "User Not Found" })
-    res.status(201).json({ user: getUsers })
+    const user = await User.find({ email: req.query.email })
+    if (!user) res.status(404).json({ message: "User Not Found" })
+    res.status(201).json({ user: user })
   } catch (error) {
     res.status(500).json({ message: "Internal Server Error", error: error.message })
   }
@@ -48,9 +48,9 @@ app.post("/user/signup/v1", async (req, res) => {
 })
 
 // DELETE/ User by ID
-app.delete("/user/deleteUser/v1", async (req, res) => {
+app.delete("/user/deleteUser/v1/:userID", async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete({ "_id": req.query.userID })
+    const user = await User.findByIdAndDelete({ "_id": req.params?.userID })
     if (user.deletedCount <= 0) res.status(404).json({ message: "No User Found To Delete" })
     res.status(200).json({ message: "User Deleted Successfully", user: req.query.userID })
   }
@@ -60,9 +60,17 @@ app.delete("/user/deleteUser/v1", async (req, res) => {
 })
 
 // UDPATE/ User by ID
-app.patch("/user/UpdateUser/v1", async (req, res) => {
+app.patch("/user/UpdateUser/v1/:userID", async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate({ "_id": req.query.userID }, req.body,{
+    // let allowedUpdates = ["age", "gender"]
+    // const isAllowed = Object.keys(req.body).every((k) => allowedUpdates.includes(k))
+
+    // if(!isAllowed){
+    //   throw new Error("update not allowed")
+    // }
+
+
+    const user = await User.findByIdAndUpdate({ "_id": req.params?.userID }, req.body,{
       runValidators: true,
       new: true, //Return new updated user not the old one
     })

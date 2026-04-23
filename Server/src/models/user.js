@@ -1,6 +1,8 @@
 // This file defines User schema and model using Mongoose
 import mongoose from "mongoose";
+import validator from "validator"
 const { Schema } = mongoose;
+
 
 const userSchema = new Schema({
     firstName: {
@@ -8,33 +10,35 @@ const userSchema = new Schema({
         required: true,
         maxlength: 30
     },
-    lastName:{
+    lastName: {
         type: String,
         minLength: 30,
         maxlength: 255
     },
-    email:{
+    email: {
         type: String,
         required: [true, 'Email is required'],
         unique: true,
         lowercase: true, // Auto-sanitizer
         trim: true,      // Auto-sanitizer
         // custome validation 
-        validate: {
-            validator: (v) => /^\S+@\S+\.\S+$/.test(v),
-            message: props => `${props.value} is not a valid email!`
-        }
+        validate(v) {
+            if (!validator.isEmail(v)) {
+                throw new Error("Invalid Email Format" + v)
+            }
+        },
+
 
     },
-    password:{
+    password: {
         type: String,
         required: true,
         select: false // Automatically excludes field from query results
     },
-    age:{
+    age: {
         type: Number,
     },
-    gender:{
+    gender: {
         type: [String]
     }
 });
