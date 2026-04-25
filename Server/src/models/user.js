@@ -12,7 +12,6 @@ const userSchema = new Schema({
     },
     lastName: {
         type: String,
-        minLength: 30,
         maxlength: 255
     },
     email: {
@@ -27,7 +26,6 @@ const userSchema = new Schema({
                 throw new Error("Invalid Email Format" + v)
             }
         },
-
 
     },
     password: {

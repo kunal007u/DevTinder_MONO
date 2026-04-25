@@ -1,9 +1,10 @@
 // Entery Point
 // create a server using express
-
 import express from 'express';
 import DBConnection from './src/config/database.js';
 import { User } from './src/models/User.js';
+import bcrypt, { hash } from 'bcrypt';
+import { validateSignupData } from './src/utils/validateSignupData.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,7 @@ app.get("/user/getUserByEmail/v1", async (req, res) => {
     res.status(500).json({ message: "Internal Server Error", error: error.message })
   }
 })
+
 //GET / getAllUsers 
 app.get("/user/getAllUsers/v1", async (req, res) => {
 
@@ -36,8 +38,22 @@ app.get("/user/getAllUsers/v1", async (req, res) => {
 
 // POST/ Signup
 app.post("/user/signup/v1", async (req, res) => {
+  let {firstName, lastName, email, password, age, gender} = req.body
+  // Validating the data coming from the client before processing it
+  validateSignupData (req.body)
+  
+  // encrypting the password before saving to database
+  const salt = await bcrypt.genSalt(10);
+  let hashpassword = await bcrypt.hash(password, salt);
+
   try {
-    const user = new User(req.body);
+    const user = new User({
+      firstName,
+      lastName,
+      email,
+      password: hashpassword,
+      age
+    });
     await user.save();
     // Send a response back to the client with the created user object
     res.status(201).json({ message: "User Created Successfully", user: req.body })
