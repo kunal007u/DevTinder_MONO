@@ -1,7 +1,7 @@
 import express from 'express';
-import { User } from '../models/User';
 import bcrypt from 'bcrypt';
 import { validateSignupData } from '../utils/validateSignupData.js';
+import { User } from '../models/User.js';
 
 const route = express.Router();
 

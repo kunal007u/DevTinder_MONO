@@ -6,8 +6,9 @@ import { validateSignupData } from './src/utils/validateSignupData.js';
 import cookieParser from 'cookie-parser';
 import { authMiddelware } from './src/middleWares/auth.middleware.js';
 import 'dotenv/config';
-import authRouter from './src/routes/auth.route.js'
-import userRouter from './src/routes/user.route.js'
+import authRouter from './src/api/auth.route.js'
+import userRouter from './src/api/user.route.js'
+import requestRouter from './src/api/connection.route.js'
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +19,7 @@ app.use(cookieParser()); // Middleware to parse cookies from incoming requests
 // ROUTES
 app.use("/", authRouter);
 app.use("/", userRouter);
+app.use("/", requestRouter);
 
 //DB Connection check 
 DBConnection().then(() => {

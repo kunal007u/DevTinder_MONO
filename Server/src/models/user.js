@@ -38,9 +38,23 @@ const userSchema = new Schema({
         type: Number,
     },
     gender: {
+        type: String
+    },
+    profilePicture: {
+        type: String,
+    },
+    bio: {
+        type: String,
+        maxlength: 500
+    },
+    skills: {
         type: [String]
+    },
+    location: {
+        type: String
     }
-});
+}, { timestamps: true })
+
 
 userSchema.methods.getJWTToken = function () {
     let user = this
