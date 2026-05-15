@@ -1,11 +1,11 @@
 import express from 'express';
-import { authMiddelware } from '../middleWares/auth.middleware.js';
+import { authMiddleware } from '../middleWares/auth.middleware.js';
 import { User } from '../models/User.js';
 
 const route = express.Router();
 
 //GET / getAllUsers 
-route.get("/api/v1/users/", authMiddelware, async (req, res) => {
+route.get("/api/v1/users/", authMiddleware, async (req, res) => {
 
   try {
     const users = await User.find({})
@@ -18,7 +18,7 @@ route.get("/api/v1/users/", authMiddelware, async (req, res) => {
 })
 
 // DELETE/ User by ID
-route.delete("/api/v1/users/:id", authMiddelware, async (req, res) => {
+route.delete("/api/v1/users/:id", authMiddleware, async (req, res) => {
     try {
         const user = await User.findByIdAndDelete({ "_id": req.params?.userID })
         if (user.deletedCount <= 0) res.status(404).json({ message: "No User Found To Delete" })
@@ -30,7 +30,7 @@ route.delete("/api/v1/users/:id", authMiddelware, async (req, res) => {
 })
 
 // UDPATE/ User by ID
-route.patch("/api/v1/users/:id", authMiddelware, async (req, res) => {
+route.patch("/api/v1/users/:id", authMiddleware, async (req, res) => {
 
     let userId = req.params?.userID
     try {
@@ -48,7 +48,7 @@ route.patch("/api/v1/users/:id", authMiddelware, async (req, res) => {
 
 
 //GET / User by Email
-route.get("/api/v1/userByEmail/", authMiddelware, async (req, res) => {
+route.get("/api/v1/userByEmail/", authMiddleware, async (req, res) => {
     let email = req.body
     try {
         const user = await User.find({ email })
@@ -56,6 +56,22 @@ route.get("/api/v1/userByEmail/", authMiddelware, async (req, res) => {
         res.status(201).json(req.user)
     } catch (error) {
         res.status(500).json({ message: "Internal Server Error", error: error.message })
+    }
+})
+
+// post /logout 
+route.post("/api/v1/logout", authMiddleware, async (req, res) => {
+    try {
+        let token = req.cookies.token
+        if(!token) return res.status(400).json({ message: "Please Login First" })
+        res.clearCookie("token", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production", // Set secure flag in production
+            sameSite: "strict", // Adjust as needed (e.g., "lax" or "none")
+        });
+        res.status(200).json({ message: "Logout successful" });
+    } catch (error) {
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 })
 

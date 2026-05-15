@@ -53,7 +53,9 @@ const userSchema = new Schema({
     location: {
         type: String
     }
-}, { timestamps: true })
+}, {
+     timestamps: true,
+ })
 
 
 userSchema.methods.getJWTToken = function () {

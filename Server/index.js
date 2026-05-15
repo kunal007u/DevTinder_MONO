@@ -4,7 +4,7 @@ import { User } from './src/models/User.js';
 import bcrypt, { hash } from 'bcrypt';
 import { validateSignupData } from './src/utils/validateSignupData.js';
 import cookieParser from 'cookie-parser';
-import { authMiddelware } from './src/middleWares/auth.middleware.js';
+import { authMiddleware } from './src/middleWares/auth.middleware.js';
 import 'dotenv/config';
 import authRouter from './src/api/auth.route.js'
 import userRouter from './src/api/user.route.js'

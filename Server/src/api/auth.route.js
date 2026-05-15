@@ -7,7 +7,7 @@ const route = express.Router();
 
 // POST/ Signup
 route.post("/api/v1/signup", async (req, res) => {
-  let { firstName, lastName, email, password, age, gender } = req.body
+  let { firstName, lastName, email, password, age, gender, profilePicture, skills, location } = req.body
   validateSignupData(req.body)
 
   // Check if user already exists with the same email
@@ -25,7 +25,11 @@ route.post("/api/v1/signup", async (req, res) => {
       lastName,
       email,
       password: hashpassword,
-      age
+      age,
+      gender,
+      profilePicture,
+      skills,
+      location
     });
 
     let token = await user.getJWTToken()

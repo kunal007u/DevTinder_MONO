@@ -1,114 +1,252 @@
-import express from 'express';
-import { Connection } from '../models/connection.js';
-import { authMiddelware } from '../middleWares/auth.middleware.js';
-import { z } from 'zod';
-import { User } from '../models/User.js';
+import express from "express";
+import { z } from "zod";
 
-/* 
-    Model: Connection
-    Fields:
-    - senderUserId: ObjectId (Reference to User model)
-    - receiverUserId: ObjectId (Reference to User model)
-    - status: String (Enum: "interseted", "accepted", "rejected", "ignore")
-*/
+import { Connection } from "../models/connection.js";
+import { User } from "../models/User.js";
+import { authMiddleware } from "../middleWares/auth.middleware.js";
 
-const route = express.Router();
+const router = express.Router();
 
+/* -------------------------------------------------------------------------- */
+/*                                VALIDATIONS                                 */
+/* -------------------------------------------------------------------------- */
 
+const sendRequestSchema = z.object({
+    status: z.enum(["interested", "ignored"]),
+});
 
-const connectionSchema = z.object({
-    status: z.enum(["interseted", "ignore"])
-})
+const reviewRequestSchema = z.object({
+    status: z.enum(["accepted", "rejected"]),
+});
 
-// POST/ Create Request
-route.post("/api/v1/request/:status/:receiverUserId", authMiddelware, async (req, res) => {
-    const { status, receiverUserId } = req.params;
-    const senderUserId = req.user.id;
+/* -------------------------------------------------------------------------- */
+/*                        SEND CONNECTION REQUEST                             */
+/* -------------------------------------------------------------------------- */
 
+router.post("/api/v1/connection-request/:status/:receiverUserId", authMiddleware, async (req, res) => {
     try {
-        // 1. Validate that the sender is not trying to connect with themselves
+        const { status, receiverUserId } = req.params;
+        const senderUserId = req.user.id;
+
+        // Validate status
+        sendRequestSchema.parse({ status });
+
+        // Prevent self request
         if (senderUserId === receiverUserId) {
-            return res.status(400).json({ message: "You cannot send a connection request to yourself" });
+            return res.status(400).json({
+                success: false,
+                message: "You cannot send a request to yourself",
+            });
         }
 
-        // Validate the request body using Zod schema
-        connectionSchema.parse({ status });
-
-        // 2. Check if the receiver user exists in the database
+        // Check receiver exists
         const receiverUser = await User.findById(receiverUserId);
+
         if (!receiverUser) {
-            return res.status(404).json({ message: "User not found" });
+            return res.status(404).json({
+                success: false,
+                message: "Receiver user not found",
+            });
         }
 
-        // Check if a connection request already exists between the sender and receiver
-
+        // Check existing connection
         const existingConnection = await Connection.findOne({
             $or: [
-                { senderUserId: req.user.id, receiverUserId: receiverUserId },
-                { senderUserId: receiverUserId, receiverUserId: req.user.id }
-            ]
+                {
+                    senderUserId,
+                    receiverUserId,
+                },
+                {
+                    senderUserId: receiverUserId,
+                    receiverUserId: senderUserId,
+                },
+            ],
         });
 
         if (existingConnection) {
-            return res.status(400).json({ message: "Connection request already exists between these users" });
+            return res.status(400).json({
+                success: false,
+                message: "Connection already exists",
+            });
         }
 
-        // Create a new connection request
-        const newConnection = new Connection({
-            senderUserId: req.user.id,
-            receiverUserId: receiverUserId,
-            status: status
+        // Create connection
+        const connection = await Connection.create({
+            senderUserId,
+            receiverUserId,
+            status,
         });
 
-        await newConnection.save();
-        res.status(201).json({ message: "Connection request created successfully", connection: newConnection });
-
+        return res.status(201).json({
+            success: true,
+            message: "Connection request sent successfully",
+            data: connection,
+        });
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ message: "Invalid request data", errors: error });
+            return res.status(400).json({
+                success: false,
+                message: error.errors[0].message,
+            });
         }
-        res.status(500).json({ message: "Internal Server Error", error: error.message });
-    }
-});
 
-// GET/ Get All Requests for the authenticated user
-route.get("/api/v1/requests", authMiddelware, async (req, res) => {
-  
-    /**
-     * If user kk sending the request to user rahul then only rahul should see the request upon calling the GET /api/v1/requests endpoint. And kk should not see the request in his GET /api/v1/requests endpoint.
-     * So, we need to filter the connection requests based on the receiverUserId field in the Connection model. We should only return the connection requests where the receiverUserId matches the authenticated user's ID (req.user.id). This way, only the user who is receiving the connection request will see it in their GET /api/v1/requests endpoint, and the sender will not see it in their GET /api/v1/requests endpoint.
-     * now rahul can preview those request one by one clicking them so we need one more API to get the details of the sender user (kk) when rahul click on the request. So, we can create another API endpoint GET /api/v1/request/:senderUserId to get the details of the sender user (kk) when rahul click on the request.
-    */
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+}
+);
+
+/* -------------------------------------------------------------------------- */
+/*                         GET PENDING REQUESTS                               */
+/* -------------------------------------------------------------------------- */
+
+router.get("/api/v1/pending-requests", authMiddleware, async (req, res) => {
     try {
-        const data = await Connection.find({
-            status: "interseted",
+        const requests = await Connection.find({
+            receiverUserId: req.user.id,
+            status: "interested",
+        }).populate(
+            "senderUserId",
+            "firstName lastName age gender profilePicture skills location"
+        );
+
+        return res.status(200).json({
+            success: true,
+            count: requests.length,
+            data: requests,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+}
+);
+
+/* -------------------------------------------------------------------------- */
+/*                        PROFILE PREVIEW API                                 */
+/* -------------------------------------------------------------------------- */
+
+router.get("/api/v1/request/profile-preview/:senderUserId", authMiddleware, async (req, res) => {
+    try {
+        const { senderUserId } = req.params;
+
+        // Find pending request
+        const connection = await Connection.findOne({
+            senderUserId,
+            receiverUserId: req.user.id,
+            status: "interested",
+        }).populate(
+            "senderUserId",
+            "firstName lastName age gender profilePicture skills location"
+        );
+
+        if (!connection) {
+            return res.status(404).json({
+                success: false,
+                message: "Request not found",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: connection.senderUserId,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+}
+);
+
+/* -------------------------------------------------------------------------- */
+/*                    ACCEPT / REJECT CONNECTION                              */
+/* -------------------------------------------------------------------------- */
+
+router.post("/api/v1/review-request/:status/:senderUserId", authMiddleware, async (req, res) => {
+    try {
+        const { status, senderUserId } = req.params;
+
+        // Validate status
+        reviewRequestSchema.parse({ status });
+
+        const connection = await Connection.findOne({
+            senderUserId,
+            receiverUserId: req.user.id,
+            status: "interested",
+        });
+
+        if (!connection) {
+            return res.status(404).json({
+                success: false,
+                message: "Connection request not found",
+            });
+        }
+
+        connection.status = status;
+
+        await connection.save();
+
+        return res.status(200).json({
+            success: true,
+            message: `Request ${status} successfully`,
+            data: connection,
+        });
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({
+                success: false,
+                message: error.errors[0].message,
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+}
+);
+
+/* -------------------------------------------------------------------------- */
+/*                           GET ALL CONNECTIONS                              */
+/* -------------------------------------------------------------------------- */
+
+router.get("/api/v1/connections", authMiddleware, async (req, res) => {
+    try {
+        const connections = await Connection.find({
+            status: "accepted",
             $or: [
-                { receiverUserId: req.user.id } 
-            ]
+                { senderUserId: req.user.id },
+                { receiverUserId: req.user.id },
+            ],
         })
+            .populate(
+                "senderUserId",
+                "firstName lastName age gender profilePicture skills location"
+            )
+            .populate(
+                "receiverUserId",
+                "firstName lastName age gender profilePicture skills location"
+            );
 
-        if (data.length === 0) {
-            return res.status(404).json({ message: "No connection request found"});
-        }
-        res.status(200).json({ data });
-
+        return res.status(200).json({
+            success: true,
+            count: connections.length,
+            data: connections,
+        });
     } catch (error) {
-        res.status(500).json({ message: "Internal Server Error", error: error.message });
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
     }
-})
+}
+);
 
-// GET/ Preview Sender User Details
-route.get("/api/v1/request/:senderUserId", authMiddelware, async (req, res) => {
-    const { senderUserId } = req.params;
-
-    try {
-        let senderUser = await User.findById(senderUserId).select("-password -email -createdAt -updatedAt -__v");
-
-        if (!senderUser) {
-            return res.status(404).json({ message: "Sender user not found" });
-        }
-    } catch (error) {
-        res.status(500).json({ message: "Internal Server Error", error: error.message });
-    }
-})
-export default route;
+export default router;

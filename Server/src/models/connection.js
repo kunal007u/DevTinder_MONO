@@ -14,7 +14,7 @@ const connectionSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ["ignore","interseted", "accepted", "rejected"],
+        enum: ["ignore","interested", "accepted", "rejected"],
         message: "Status must be either 'interseted', 'accepted', 'rejected' or 'ignore'"
     }
    
