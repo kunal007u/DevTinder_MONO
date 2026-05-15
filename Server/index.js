@@ -9,6 +9,7 @@ import 'dotenv/config';
 import authRouter from './src/api/auth.route.js'
 import userRouter from './src/api/user.route.js'
 import requestRouter from './src/api/connection.route.js'
+import feedRouter from './src/api/feed.route.js'
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +21,7 @@ app.use(cookieParser()); // Middleware to parse cookies from incoming requests
 app.use("/", authRouter);
 app.use("/", userRouter);
 app.use("/", requestRouter);
+app.use("/", feedRouter);
 
 //DB Connection check 
 DBConnection().then(() => {

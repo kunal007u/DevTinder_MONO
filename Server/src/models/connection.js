@@ -2,12 +2,12 @@ import mongoose from "mongoose";
 const { Schema } = mongoose;
 
 const connectionSchema = new Schema({
-    senderUserId: {
+    loggedInUserId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User", // Reference to the User model
         required: true 
     },
-    receiverUserId: {
+    randomPersonId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User", // Reference to the User model
         required: true 
@@ -22,7 +22,7 @@ const connectionSchema = new Schema({
 
 connectionSchema.pre("save", function(){
     const connection = this;
-    if (connection.senderUserId.equals(connection.receiverUserId)){
+    if (connection.loggedInUserId.equals(connection.randomPersonId)){
         return res.status(400).json({ message: "Sender and Receiver cannot be the same user" });
     }
 })

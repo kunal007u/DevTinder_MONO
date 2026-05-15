@@ -23,24 +23,16 @@ const reviewRequestSchema = z.object({
 /*                        SEND CONNECTION REQUEST                             */
 /* -------------------------------------------------------------------------- */
 
-router.post("/api/v1/connection-request/:status/:receiverUserId", authMiddleware, async (req, res) => {
+router.post("/api/v1/connection-request/:status/:randomPersonId", authMiddleware, async (req, res) => {
     try {
-        const { status, receiverUserId } = req.params;
+        const { status, randomPersonId } = req.params;
         const senderUserId = req.user.id;
 
         // Validate status
         sendRequestSchema.parse({ status });
 
-        // Prevent self request
-        if (senderUserId === receiverUserId) {
-            return res.status(400).json({
-                success: false,
-                message: "You cannot send a request to yourself",
-            });
-        }
-
-        // Check receiver exists
-        const receiverUser = await User.findById(receiverUserId);
+        // Check that random person is even exist in out database or no 
+        const receiverUser = await User.findById(randomPersonId);
 
         if (!receiverUser) {
             return res.status(404).json({
@@ -53,12 +45,12 @@ router.post("/api/v1/connection-request/:status/:receiverUserId", authMiddleware
         const existingConnection = await Connection.findOne({
             $or: [
                 {
-                    senderUserId,
-                    receiverUserId,
+                    loggedInUserId,
+                    randomPersonId,
                 },
                 {
-                    senderUserId: receiverUserId,
-                    receiverUserId: senderUserId,
+                    loggedInUserId: randomPersonId,
+                    randomPersonId: loggedInUserId,
                 },
             ],
         });
@@ -72,8 +64,8 @@ router.post("/api/v1/connection-request/:status/:receiverUserId", authMiddleware
 
         // Create connection
         const connection = await Connection.create({
-            senderUserId,
-            receiverUserId,
+            loggedInUserId,
+            randomPersonId,
             status,
         });
 
@@ -105,10 +97,10 @@ router.post("/api/v1/connection-request/:status/:receiverUserId", authMiddleware
 router.get("/api/v1/pending-requests", authMiddleware, async (req, res) => {
     try {
         const requests = await Connection.find({
-            receiverUserId: req.user.id,
+            loggedInUserId: req.user.id,
             status: "interested",
         }).populate(
-            "senderUserId",
+            "loggedInUserId",
             "firstName lastName age gender profilePicture skills location"
         );
 
@@ -123,52 +115,14 @@ router.get("/api/v1/pending-requests", authMiddleware, async (req, res) => {
             message: error.message,
         });
     }
-}
-);
+});
 
-/* -------------------------------------------------------------------------- */
-/*                        PROFILE PREVIEW API                                 */
-/* -------------------------------------------------------------------------- */
-
-router.get("/api/v1/request/profile-preview/:senderUserId", authMiddleware, async (req, res) => {
-    try {
-        const { senderUserId } = req.params;
-
-        // Find pending request
-        const connection = await Connection.findOne({
-            senderUserId,
-            receiverUserId: req.user.id,
-            status: "interested",
-        }).populate(
-            "senderUserId",
-            "firstName lastName age gender profilePicture skills location"
-        );
-
-        if (!connection) {
-            return res.status(404).json({
-                success: false,
-                message: "Request not found",
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            data: connection.senderUserId,
-        });
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: error.message,
-        });
-    }
-}
-);
 
 /* -------------------------------------------------------------------------- */
 /*                    ACCEPT / REJECT CONNECTION                              */
 /* -------------------------------------------------------------------------- */
 
-router.post("/api/v1/review-request/:status/:senderUserId", authMiddleware, async (req, res) => {
+router.post("/api/v1/review-request/:status/:randomPersonId", authMiddleware, async (req, res) => {
     try {
         const { status, senderUserId } = req.params;
 
@@ -176,8 +130,8 @@ router.post("/api/v1/review-request/:status/:senderUserId", authMiddleware, asyn
         reviewRequestSchema.parse({ status });
 
         const connection = await Connection.findOne({
-            senderUserId,
-            receiverUserId: req.user.id,
+            randomPersonId,
+            loggedInUserId: req.user.id,
             status: "interested",
         });
 
@@ -222,16 +176,16 @@ router.get("/api/v1/connections", authMiddleware, async (req, res) => {
         const connections = await Connection.find({
             status: "accepted",
             $or: [
-                { senderUserId: req.user.id },
-                { receiverUserId: req.user.id },
+                { randomPersonId: req.user.id },
+                { loggedInUserId: req.user.id },
             ],
         })
             .populate(
-                "senderUserId",
+                "randomPersonId",
                 "firstName lastName age gender profilePicture skills location"
             )
             .populate(
-                "receiverUserId",
+                "loggedInUserId",
                 "firstName lastName age gender profilePicture skills location"
             );
 
