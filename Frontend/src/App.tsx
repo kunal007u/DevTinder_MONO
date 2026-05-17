@@ -1,14 +1,8 @@
-import React from 'react'
-import { Route, Routes } from 'react-router'
-import Body from './Components/Body'
+import AppRouting from "./Routes/AppRouting";
 
 function App() {
   return (
-    <>
-        <Routes>
-          <Route path="/" element={<Body/>} />
-        </Routes>
-    </>
+    <AppRouting />
   )
 }
 
