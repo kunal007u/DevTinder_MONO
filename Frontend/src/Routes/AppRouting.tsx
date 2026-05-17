@@ -3,6 +3,7 @@ import { Routing } from "./Routing";
 import Login from "../Pages/Login";
 import PublicLayout from "../Layout/PublicLayout";
 import { PrivateRoute } from "../Layout/PrivateRoute";
+import SignUp from "../Pages/Signup/SignUp";
 
 const routesConfig = [
     // --- PUBLIC ROUTES LAYER ---
@@ -10,6 +11,7 @@ const routesConfig = [
         element: <PublicLayout />, // Acts as a parent layout component housing an <Outlet />
         children: [
             { path: Routing.Login, element: <Login /> },
+            { path: Routing.SignUp, element: <SignUp /> },
         ],
     },
 
