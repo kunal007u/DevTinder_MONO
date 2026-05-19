@@ -2,6 +2,9 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import { validateSignupData } from '../utils/validateSignupData.js';
 import { User } from '../models/User.js';
+import { successResponseFunc } from '../utils/responseFunction.js';
+import statusCodes from '../utils/statusCodes.js';
+import constants from '../utils/constants.js';
 
 const route = express.Router();
 
@@ -41,10 +44,20 @@ route.post("/api/v1/signup", async (req, res) => {
     })
 
     await user.save();
-    res.status(201).json({ message: "User Created Successfully", user: user })
+    // res.status(201).json({ message: "User Created Successfully", token: token })
+    return res
+      .status(statusCodes.success)
+      .send(
+        successResponseFunc(
+          "Sign up successfully",
+          statusCodes.success,
+          constants.SUCCESS,
+          { token, firstName : user.firstName}
+        )
+      );
   }
   catch (error) {
-    res.status(500).json({ message: "Internal Server Error", error: error.message })
+    return res.status(500).json({ message: "Internal Server Error", error: error.message })
   }
 })
 

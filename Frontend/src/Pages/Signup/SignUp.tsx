@@ -3,6 +3,11 @@ import axios from 'axios'
 import type { ISignUpRequestModel } from '../../model/account'
 import { useForm } from "react-hook-form"
 import './SignUp.css'
+import { jwtDecode } from 'jwt-decode'
+import { useDispatch } from 'react-redux'
+import { adminLogin } from '../../Store/AuthSlice/authSlice'
+
+
 
 type Inputs = {
     firstName: string,
@@ -17,20 +22,23 @@ type Inputs = {
     location: string
 }
 const SignUp = () => {
+    const dispatch = useDispatch();
+
+
     const signUpMutation = useMutation({
         mutationFn: async (data: any) => {
             return axios.post('http://localhost:3000/api/v1/signup', data)
         },
         onSuccess: (response) => {
-            console.log("🚀 ~💀 SignUp.tsx:10 ~💀 SignUp ~💀 response:", response);
-            console.log(cookieStore.getAll());
-            // const decode = jwtDecode(response?.data?.data?.token);
-            // const newResponse = { ...decode, ...response?.data?.data }
-            // if (response?.data?.status?.code) {
-            //     dispatch(adminLogin(newResponse));
-            //     toast.success(response?.data?.status?.message);
-            //     permissionMutation.mutate();
-            // }
+            // localStorage.setItem("token", response?.data?.token);
+            const decode =  jwtDecode(response?.data?.token);
+            const newResponse = { ...decode, ...response?.data }
+            console.log("🚀 ~💀 SignUp.tsx:36 ~💀 SignUp ~💀 newResponse:", newResponse);
+            if (response?.data?.status?.code) {
+                dispatch(adminLogin(newResponse));
+                // toast.success(response?.data?.status?.message);
+                // permissionMutation.mutate();
+            }
 
         },
         onError: (error: Error) => { console.log(error?.message) },
